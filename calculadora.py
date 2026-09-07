@@ -82,7 +82,21 @@ class Calculadora:
             self.visor.delete(0, tk.END)
             self.visor.insert(0, self.expressao)
         elif valor == "=":
-            print("Calcular:", self.expressao)
+            try:
+                tokens = self.tokenizar(self.expressao)
+                postfix = self.infix_para_postfix(tokens)
+                resultado = self.calcular_postfix(postfix)
+                self.visor.delete(0, tk.END)
+                self.visor.insert(0, str(resultado))
+                
+                if resultado != "Erro":
+                    self.expressao = str(resultado)
+                else:
+                    self.expressao = ""
+            except Exception:
+                self.visor.delete(0, tk.END)
+                self.visor.insert(0, "Erro")
+                self.expressao = ""
         else:
             self.expressao += valor
             self.visor.delete(0, tk.END)
@@ -93,8 +107,132 @@ class Calculadora:
         expressao_tratada = expressao_tratada.replace("^", "**")
         expressao_tratada = expressao_tratada.replace("÷", "/")
         return expressao_tratada
+    
+    def tokenizar(self, expressao_texto):
+        tokens = []
+        numero_atual = ""
+        operadores = ["+", "-", "×", "÷", "^", "!", "%", "(", ")", "π", "e"]
+        funcoes = ["sin", "cos", "tan", "log", "ln", "sqrt", "√"]
+        
+        i = 0
+        while i < len(expressao_texto):
+            char = expressao_texto[i]
             
+            if char.isdigit() or char == ".":
+                numero_atual += char
+                i += 1
+            else:
+                if numero_atual:
+                    tokens.append(numero_atual)
+                    numero_atual = ""
+                funcao_encontrada = False
+                for f in funcoes:
+                    if expressao_texto[i:].startswith(f):
+                        tokens.append(f)
+                        i += len(f)
+                        funcao_encontrada = True
+                        break
+                    
+                if funcao_encontrada:
+                    continue
+                
+                if char in operadores:
+                    tokens.append(char)
+                    i += 1
+                else:
+                    i += 1
+        
+        if numero_atual:
+            tokens.append(numero_atual)
+        return tokens
+    
+    def infix_para_postfix(self, tokens):
+        precedencia = {
+            "+": 1, "-": 1,
+            "×": 2, "÷": 2,
+            "^": 3, "sin": 3, "cos": 3, "tan": 3, "log": 3, "ln": 3, "√": 3, "sqrt": 3, "!": 3, "%": 3
+        }
+        
+        saida = []
+        pilha = []
+        
+        for token in tokens:
+            if token.replace(".", "", 1).isdigit() or token in ["π", "e"]:
+                saida.append(token)
+            elif token in ["sin", "cos", "tan", "log", "ln", "√", "sqrt", "("]:
+                pilha.append(token)
+            elif token == ")":
+                while pilha and pilha[-1] != "(":
+                    saida.append(pilha.pop())
+                if pilha and pilha[-1] == "(":
+                    pilha.pop()
+                if pilha and pilha[-1] in ["sin", "cos", "tan", "log", "ln", "√", "sqrt"]:
+                    saida.append(pilha.pop())
+            elif token in precedencia:
+                while (pilha and pilha[-1] != "(" and precedencia.get(pilha[-1], 0) >= precedencia[token]):
+                    saida.append(pilha.pop())
+                pilha.append(token)
+            
+        while pilha:
+            saida.append(pilha.pop())
+        return saida
+
+    def calcular_postfix(self, tokens_postfix):
+        pilha = []
+        
+        for token in tokens_postfix:
+            if token.replace(".", "", 1).isdigit():
+                pilha.append(float(token))
+            elif token == "π":
+                pilha.append(math.pi)
+            elif token == "e":
+                pilha.append(math.e)
+            elif token in ["+", "-", "×", "÷", "^"]:
+                if len(pilha) < 2: return "Erro"
+                
+                num2 = pilha.pop()
+                num1 = pilha.pop()
+                
+                if token == "+": pilha.append(num1 + num2)
+                elif token == "-": pilha.append(num1 - num2)
+                elif token == "×": pilha.append(num1 * num2)
+                elif token == "÷":
+                    if num2 == 0: return "Erro"
+                    pilha.append(num1 / num2)
+                elif token == "^": pilha.append(num1 ** num2)
+            elif token in ["sin", "cos", "tan", "log", "ln", "√", "!", "%"]:
+                if len(pilha) < 1: return "Erro"
+                
+                num = pilha.pop()
+                
+                if token == "√":
+                    if num < 0: return "Erro"
+                    pilha.append(math.sqrt(num))
+                elif token == "sin": pilha.append(math.sin(math.radians(num)))
+                elif token == "cos": pilha.append(math.cos(math.radians(num)))
+                elif token == "tan": pilha.append(math.tan(math.radians(num)))
+                elif token == "log":
+                    if num <= 0: return "Erro"
+                    pilha.append(math.log10(num))
+                elif token == "ln":
+                    if num <= 0: return "Erro"
+                    pilha.append(math.log(num))
+                elif token == "!":
+                    if num < 0 or not num.is_integer(): return "Erro"
+                    pilha.append(math.factorial(int(num)))
+                elif token == "%": pilha.append(num / 100)
+        
+        if len(pilha) == 1:
+            resultado = pilha[0]
+            
+            if isinstance(resultado, (int, float)) and hasattr(resultado, 'is_integer') and resultado.is_integer():
+                return int(resultado)
+            return round(resultado, 6)
+        return "Erro"
+                    
 if __name__ == "__main__":
     janela_principal = tk.Tk()
     app = Calculadora(janela_principal)
     janela_principal.mainloop()
+    
+# Pendências: Fazer o resultado sumir ao escerver um novo número. Criar .exe.
