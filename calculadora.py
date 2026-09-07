@@ -1,3 +1,4 @@
+import math
 import tkinter as tk
 
 botao1 = "#363434"
@@ -9,6 +10,7 @@ fundo = "#e8e6e6"
 class Calculadora:
     def __init__(self, janela):
         self.janela = janela
+        self.expressao = ""
         self.janela.title("Calculadora")
         self.janela.geometry("352x465")
         self.janela.resizable(False, False)
@@ -28,7 +30,7 @@ class Calculadora:
             ("√", 1, 0, 1, botao1), ("π", 1, 1, 1, botao1), ("^", 1, 2, 1, botao1), ("!", 1, 3, 1, botao1),
             ("log", 2, 0, 1, botao1), ("sin", 2, 1, 1, botao1), ("cos", 2, 2, 1, botao1), ("tan", 2, 3, 1, botao1),
             ("ln", 3, 0, 1, botao1), ("e", 3, 1, 1, botao1), ("(", 3, 2, 1, botao1), (")", 3, 3, 1, botao1),
-            ("C", 4, 0, 2, botao2), ("%", 4, 2, 1, botao2), ("/", 4, 3, 1, botao2),
+            ("C", 4, 0, 2, botao2), ("%", 4, 2, 1, botao2), ("÷", 4, 3, 1, botao2),
             ("7", 5, 0, 1, botao1), ("8", 5, 1, 1, botao1), ("9", 5, 2, 1, botao1), ("×", 5, 3, 1, botao2),
             ("4", 6, 0, 1, botao1), ("5", 6, 1, 1, botao1), ("6", 6, 2, 1, botao1), ("-", 6, 3, 1, botao2),
             ("1", 7, 0, 1, botao1), ("2", 7, 1, 1, botao1), ("3", 7, 2, 1, botao1), ("+", 7, 3, 1, botao2),
@@ -44,7 +46,7 @@ class Calculadora:
             )
             moldura_btn.grid(row=r, column=c, columnspan=span, sticky="NSWE")
             
-            if (texto == "="):
+            if texto == "=":
                 btn = tk.Button(
                     moldura_btn,
                     text=texto,
@@ -52,7 +54,8 @@ class Calculadora:
                     bg=cor,
                     fg=visor,
                     bd=0,
-                    activebackground="#dadada"
+                    activebackground="#dadada",
+                    command=lambda t=texto: self.clique_botao(t)
                 )
             else:
                 btn = tk.Button(
@@ -62,14 +65,35 @@ class Calculadora:
                     bg=cor,
                     fg="#FFFFFF",
                     bd=0,
-                    activebackground="#dadada"
+                    activebackground="#dadada",
+                    command=lambda t=texto: self.clique_botao(t)
                 )
             btn.pack(fill="both", expand=True)
-              
                 
             btn.bind("<Enter>", lambda event, f=moldura_btn: f.config(relief="groove"))
             btn.bind("<Leave>", lambda event, f=moldura_btn: f.config(relief="raised"))
-        
+    
+    def clique_botao(self, valor):
+        if valor == "C":
+            self.expressao = ""
+            self.visor.delete(0, tk.END)
+        elif valor == "⌫":
+            self.expressao = self.expressao[:-1]
+            self.visor.delete(0, tk.END)
+            self.visor.insert(0, self.expressao)
+        elif valor == "=":
+            print("Calcular:", self.expressao)
+        else:
+            self.expressao += valor
+            self.visor.delete(0, tk.END)
+            self.visor.insert(0, self.expressao)
+    
+    def preparar_expressao(self, texto_visor):
+        expressao_tratada = texto_visor.replace("×", "*")
+        expressao_tratada = expressao_tratada.replace("^", "**")
+        expressao_tratada = expressao_tratada.replace("÷", "/")
+        return expressao_tratada
+            
 if __name__ == "__main__":
     janela_principal = tk.Tk()
     app = Calculadora(janela_principal)
