@@ -11,6 +11,7 @@ class Calculadora:
     def __init__(self, janela):
         self.janela = janela
         self.expressao = ""
+        self.limpar_no_próximo_clique = False
         self.janela.title("Calculadora")
         self.janela.geometry("352x465")
         self.janela.resizable(False, False)
@@ -25,6 +26,8 @@ class Calculadora:
             janela, font=("Segoe UI", 20), bg=visor, fg="#ffffff", width=1, bd=0, justify="right"
         )
         self.visor.grid(row=0, column=0, columnspan=4, ipady=15, sticky="NSWE")
+        
+        self.visor.bind("<Key>", lambda e: "break")
         
         botoes = [
             ("√", 1, 0, 1, botao1), ("π", 1, 1, 1, botao1), ("^", 1, 2, 1, botao1), ("!", 1, 3, 1, botao1),
@@ -72,6 +75,21 @@ class Calculadora:
                 
             btn.bind("<Enter>", lambda event, f=moldura_btn: f.config(relief="groove"))
             btn.bind("<Leave>", lambda event, f=moldura_btn: f.config(relief="raised"))
+            
+        self.janela.focus_set()
+        self.janela.bind("<Key>", self.escutar_teclado)
+    
+    def escutar_teclado(self, evento):
+        char = evento.char
+        keysym = evento.keysym
+        
+        if keysym == "BackSpace": self.clique_botao("⌫")
+        elif keysym in ["Return", "KP_Enter"]: self.clique_botao("=")
+        elif keysym == "Escape": self.clique_botao("C")
+        elif char in "0123456789.+-^!%()": self.clique_botao(char)
+        elif char == "*": self.clique_botao("×")
+        elif char == "/": self.clique_botao("÷")
+        return "break"
     
     def clique_botao(self, valor):
         if valor == "C":
@@ -91,6 +109,7 @@ class Calculadora:
                 
                 if resultado != "Erro":
                     self.expressao = str(resultado)
+                    self.limpar_no_próximo_clique = True
                 else:
                     self.expressao = ""
             except Exception:
@@ -98,7 +117,22 @@ class Calculadora:
                 self.visor.insert(0, "Erro")
                 self.expressao = ""
         else:
-            self.expressao += valor
+            operadores_continuidade = ["+", "-", "×", "÷", "^", "%", "!"]
+            
+            if self.limpar_no_próximo_clique and valor not in operadores_continuidade:
+                self.expressao = valor
+            else:
+                if self.expressao and valor in operadores_continuidade:
+                    ultimo_char = self.expressao[-1]
+                    if ultimo_char in operadores_continuidade:
+                        self.expressao = self.expressao[:-1] + valor
+                    else:
+                        self.expressao += valor
+                else:
+                    self.expressao += valor
+            
+            self.limpar_no_próximo_clique = False
+            
             self.visor.delete(0, tk.END)
             self.visor.insert(0, self.expressao)
     
@@ -112,7 +146,7 @@ class Calculadora:
         tokens = []
         numero_atual = ""
         operadores = ["+", "-", "×", "÷", "^", "!", "%", "(", ")", "π", "e"]
-        funcoes = ["sin", "cos", "tan", "log", "ln", "sqrt", "√"]
+        funcoes = ["sin", "cos", "tan", "log", "ln", "√"]
         
         i = 0
         while i < len(expressao_texto):
@@ -150,7 +184,7 @@ class Calculadora:
         precedencia = {
             "+": 1, "-": 1,
             "×": 2, "÷": 2,
-            "^": 3, "sin": 3, "cos": 3, "tan": 3, "log": 3, "ln": 3, "√": 3, "sqrt": 3, "!": 3, "%": 3
+            "^": 3, "sin": 3, "cos": 3, "tan": 3, "log": 3, "ln": 3, "√": 3, "!": 3, "%": 3
         }
         
         saida = []
@@ -159,14 +193,14 @@ class Calculadora:
         for token in tokens:
             if token.replace(".", "", 1).isdigit() or token in ["π", "e"]:
                 saida.append(token)
-            elif token in ["sin", "cos", "tan", "log", "ln", "√", "sqrt", "("]:
+            elif token in ["sin", "cos", "tan", "log", "ln", "√", "("]:
                 pilha.append(token)
             elif token == ")":
                 while pilha and pilha[-1] != "(":
                     saida.append(pilha.pop())
                 if pilha and pilha[-1] == "(":
                     pilha.pop()
-                if pilha and pilha[-1] in ["sin", "cos", "tan", "log", "ln", "√", "sqrt"]:
+                if pilha and pilha[-1] in ["sin", "cos", "tan", "log", "ln", "√"]:
                     saida.append(pilha.pop())
             elif token in precedencia:
                 while (pilha and pilha[-1] != "(" and precedencia.get(pilha[-1], 0) >= precedencia[token]):
@@ -234,5 +268,3 @@ if __name__ == "__main__":
     janela_principal = tk.Tk()
     app = Calculadora(janela_principal)
     janela_principal.mainloop()
-    
-# Pendências: Fazer o resultado sumir ao escerver um novo número. Criar .exe.
