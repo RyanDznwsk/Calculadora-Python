@@ -1,5 +1,4 @@
 # Calculadora-Python
-<<<<<<< HEAD
 Projeto de calculadora usando Python com Tkinter.
 
 ---
