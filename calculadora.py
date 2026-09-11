@@ -159,6 +159,7 @@ class Calculadora:
                 if numero_atual:
                     tokens.append(numero_atual)
                     numero_atual = ""
+                    
                 funcao_encontrada = False
                 for f in funcoes:
                     if expressao_texto[i:].startswith(f):
@@ -203,7 +204,7 @@ class Calculadora:
                 if pilha and pilha[-1] in ["sin", "cos", "tan", "log", "ln", "√"]:
                     saida.append(pilha.pop())
             elif token in precedencia:
-                while (pilha and pilha[-1] != "(" and precedencia.get(pilha[-1], 0) >= precedencia[token]):
+                while pilha and pilha[-1] != "(" and precedencia.get(pilha[-1], 0) >= precedencia[token]:
                     saida.append(pilha.pop())
                 pilha.append(token)
             
